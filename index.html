@@ -156,6 +156,12 @@ table.pv tr:last-child td{border-bottom:none;}
 .st-asm{background:#E6EEF9;color:#1F5C99;}
 .kpi.asm .k-val{color:#1F5C99;}
 
+/* ---- 可點擊 KPI 與筆數提示（v2.1） ---- */
+.kpi[data-filter]{cursor:pointer;transition:border-color .15s,background .15s;}
+.kpi[data-filter]:hover{border-color:var(--navy);background:#F8FBFE;}
+.kpi[data-filter]:focus-visible{outline:2px solid #9CC0E0;outline-offset:2px;}
+.row-count{font-size:12px;color:var(--muted);white-space:nowrap;}
+
 </style>
 </head>
 <body>
@@ -260,6 +266,7 @@ table.pv tr:last-child td{border-bottom:none;}
         <option value="足夠">只看足夠</option>
         <option value="無需求(呆滯)">只看呆滯</option>
       </select>
+      <span id="rowCount" class="row-count"></span>
       <span class="spacer"></span>
       <button type="button" id="exportBtn" class="btn-secondary">⬇ 匯出 Excel</button>
     </div>
@@ -1062,10 +1069,35 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function renderResults(res) {
     var k = res.kpi;
     document.getElementById("kpis").innerHTML =
-      '<div class="kpi"><div class="k-label">料號總數</div><div class="k-val">' + k.total + "</div></div>" +
-      '<div class="kpi warn"><div class="k-label">缺料料號</div><div class="k-val">' + k.shortageItems + "</div></div>" +
-      '<div class="kpi warn"><div class="k-label">缺料總量</div><div class="k-val">' + fmt(k.shortageQty) + "</div></div>" +
-      '<div class="kpi asm"><div class="k-label">待組裝料號</div><div class="k-val">' + k.assemblyItems + "</div></div>";
+      '<div class="kpi warn" data-filter="缺料" role="button" tabindex="0"><div class="k-label">缺料料號（要採購）</div><div class="k-val">' + k.shortageItems + "</div></div>" +
+      '<div class="kpi warn" data-filter="缺料" role="button" tabindex="0"><div class="k-label">缺料總量</div><div class="k-val">' + fmt(k.shortageQty) + "</div></div>" +
+      '<div class="kpi asm" data-filter="待組裝" role="button" tabindex="0"><div class="k-label">待組裝（廠內做）</div><div class="k-val">' + k.assemblyItems + "</div></div>" +
+      '<div class="kpi idle" data-filter="無需求(呆滯)" role="button" tabindex="0"><div class="k-label">無需求庫存</div><div class="k-val">' + k.idleItems + "</div></div>";
+
+    // 篩選選單加上筆數
+    var sel = document.getElementById("filterStatus");
+    var counts = { all: res.rows.length, "缺料": 0, "待組裝": 0, "足夠": 0, "無需求(呆滯)": 0 };
+    res.rows.forEach(function (r) { if (counts[r.status] != null) counts[r.status]++; });
+    Array.prototype.forEach.call(sel.options, function (o) {
+      var base = o.dataset.base || o.textContent.replace(/\s*（[\d,]+）$/, "");
+      o.dataset.base = base;
+      o.textContent = base + "（" + fmt(counts[o.value] || 0) + "）";
+    });
+
+    // 預設直接看缺料，沒缺料才看全部
+    sel.value = k.shortageItems > 0 ? "缺料" : "all";
+
+    // KPI 卡片可點擊切換篩選
+    document.querySelectorAll("#kpis .kpi").forEach(function (card) {
+      function go() {
+        sel.value = card.dataset.filter;
+        applyFilter();
+        document.querySelector(".table-wrap").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      card.addEventListener("click", go);
+      card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    });
+
     applyFilter();
   }
 
@@ -1080,6 +1112,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     var body = document.getElementById("resultBody");
     var empty = document.getElementById("emptyState");
+    var cnt = document.getElementById("rowCount");
+    if (cnt) cnt.textContent = "顯示 " + fmt(rows.length) + " / " + fmt(lastResults.rows.length) + " 筆";
     if (!rows.length) {
       body.innerHTML = "";
       empty.hidden = false;
