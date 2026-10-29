@@ -79,6 +79,7 @@ body{
 .qty-row{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--soft);}
 .qty-code{font-weight:700;color:var(--navy);font-size:13px;}
 .qty-name{color:var(--muted);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.qty-lbl{font-size:12px;color:var(--muted);white-space:nowrap;}
 .qty-row input{width:110px;padding:7px 9px;border:1px solid #C9D5E1;border-radius:7px;font-size:13px;text-align:right;}
 
 /* Run */
@@ -91,7 +92,7 @@ body{
 .btn-secondary:hover{background:#F0F5FA;}
 
 /* KPIs */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
 .kpi{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:#fff;}
 .kpi .k-label{font-size:12.5px;color:var(--muted);}
 .kpi .k-val{font-size:28px;font-weight:800;color:var(--navy);margin-top:4px;line-height:1.1;}
@@ -126,6 +127,9 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
 .empty{padding:40px;text-align:center;color:var(--muted);font-size:14px;}
 .footnote{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;}
 
+@media (max-width:1180px){
+  .kpis{grid-template-columns:repeat(3,1fr);}
+}
 @media (max-width:860px){
   .uploads{grid-template-columns:1fr;}
   .kpis{grid-template-columns:repeat(2,1fr);}
@@ -162,6 +166,36 @@ table.pv tr:last-child td{border-bottom:none;}
 .kpi[data-filter]:focus-visible{outline:2px solid #9CC0E0;outline-offset:2px;}
 .row-count{font-size:12px;color:var(--muted);white-space:nowrap;}
 
+/* ---- 可生產台數（v3） ---- */
+.uc-note{margin:-2px 0 10px;font-size:11.5px;color:var(--muted);line-height:1.45;}
+
+.cap-hint{margin:0 0 12px;padding:10px 14px;border-radius:10px;background:#F2F7FC;border:1px solid #D3E2EF;font-size:13px;color:#1A2B3C;}
+.cap-hint b{color:var(--navy);}
+.cap-hint .bad{color:var(--red);font-weight:800;}
+
+.cap-box{margin-bottom:16px;border:1px solid #D3E2EF;border-left:5px solid var(--navy);border-radius:12px;background:#F8FBFE;padding:16px 20px;}
+.cap-main{display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.cap-num{display:flex;align-items:baseline;gap:5px;}
+.cap-big{font-size:42px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums;}
+.cap-unit{font-size:15px;font-weight:700;color:var(--gray);}
+.cap-side{flex:1;min-width:230px;}
+.cap-line{font-size:14px;color:#1A2B3C;}
+.cap-line b{color:var(--navy);}
+.cap-line b.bad{color:var(--red);}
+.cap-line b.good{color:var(--green);}
+.cap-sub{margin-top:3px;font-size:12px;color:var(--muted);}
+.cap-ladder{margin-top:14px;padding-top:12px;border-top:1px dashed #CBDCEA;}
+.cap-lad-title{font-size:12px;font-weight:700;color:var(--gray);margin-bottom:6px;}
+.cap-lad-row{font-size:12.5px;color:#1A2B3C;padding:4px 0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;}
+.cap-step{flex:0 0 auto;font-size:11px;font-weight:700;color:#1F5C99;background:#E3EEF9;border-radius:5px;padding:1px 7px;}
+.cap-lad-row b{color:var(--navy);}
+.cap-chips{color:var(--muted);font-size:11.5px;}
+
+.kpi.cap{background:#F8FBFE;border-color:#C6D8E8;}
+.kpi.cap .k-val{font-size:32px;color:var(--navy);}
+.kpi.gap .k-val{color:var(--red);}
+.cap-lad-more{margin-top:6px;font-size:11.5px;color:var(--muted);}
+
 </style>
 </head>
 <body>
@@ -171,7 +205,7 @@ table.pv tr:last-child td{border-bottom:none;}
       <div class="logo">庫</div>
       <div>
         <h1>庫存欠料盤點工具</h1>
-        <p class="sub">上傳 BOM、庫存、進貨三表 → 自動算出既有庫存量與缺料</p>
+        <p class="sub">上傳 BOM、庫存、進料三表 → 算出「現有庫存能做幾台、還缺多少料」</p>
       </div>
     </div>
     <span class="badge">🔒 全部在本機瀏覽器計算，資料不外傳</span>
@@ -182,12 +216,13 @@ table.pv tr:last-child td{border-bottom:none;}
 
   <section class="step">
     <h2 class="step-title"><span class="num">1</span> 上傳三份資料</h2>
-    <p class="step-desc">支援 Excel（.xlsx／.xls／.csv，甚至沒有副檔名也能讀）。系統會自動找表頭列、自動挑選最相符的工作表；欄位名稱不同也能手動指定。</p>
+    <p class="step-desc">三份檔案各回答一個問題：<b>BOM</b> 說「做一台要哪些料、各用多少」，<b>庫存</b> 說「倉庫現在有多少」，<b>進料</b> 說「已下單還會到多少」。支援 .xlsx／.xls／.csv，沒有副檔名也能讀；系統會自動找表頭列、自動挑選最相符的工作表。</p>
 
     <div class="uploads">
       <!-- BOM -->
       <div class="upload-card" data-type="bom">
-        <div class="uc-head"><h3>產品生產 BOM 表</h3><span class="uc-tag req-tag">必填</span></div>
+        <div class="uc-head"><h3>① 產品 BOM 表</h3><span class="uc-tag req-tag">必填</span></div>
+        <p class="uc-note">一台份的用料清單：材料料號 × 單位用量</p>
         <div class="dropzone">
           <div class="dz-icon">📄</div>
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
@@ -205,7 +240,8 @@ table.pv tr:last-child td{border-bottom:none;}
 
       <!-- 庫存 -->
       <div class="upload-card" data-type="inv">
-        <div class="uc-head"><h3>目前庫存表</h3><span class="uc-tag req-tag">必填</span></div>
+        <div class="uc-head"><h3>② 目前庫存表</h3><span class="uc-tag req-tag">必填</span></div>
+        <p class="uc-note">倉庫現有數量（盤點清冊可直接用）</p>
         <div class="dropzone">
           <div class="dz-icon">📦</div>
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
@@ -223,11 +259,12 @@ table.pv tr:last-child td{border-bottom:none;}
 
       <!-- 進貨 -->
       <div class="upload-card" data-type="inc">
-        <div class="uc-head"><h3>進貨表</h3><span class="uc-tag opt-tag">選填</span></div>
+        <div class="uc-head"><h3>③ 進料／進貨表</h3><span class="uc-tag opt-tag">選填</span></div>
+        <p class="uc-note">已下單未到貨的數量，會計入可用量</p>
         <div class="dropzone">
           <div class="dz-icon">🚚</div>
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
-          <div class="dz-hint">.xlsx / .xls / .csv（未上傳則在途進貨視為 0）</div>
+          <div class="dz-hint">.xlsx / .xls / .csv（未上傳則在途進料視為 0）</div>
         </div>
         <input type="file" hidden>
         <div class="file-status" hidden></div>
@@ -242,8 +279,9 @@ table.pv tr:last-child td{border-bottom:none;}
   </section>
 
   <section class="step" id="qtySection" hidden>
-    <h2 class="step-title"><span class="num">2</span> 生產數量設定</h2>
-    <p class="step-desc">若 BOM 已含「生產數量」欄位會自動帶入；否則請在此填入各產品的計畫生產量（需求量＝生產量 × 單位用量）。</p>
+    <h2 class="step-title"><span class="num">2</span> 生產目標</h2>
+    <p class="step-desc">BOM 是「一台份」的用量，這裡填這次要做幾台。下方會即時算出「現有庫存＋進料最多能做幾台」，兩者一比就是缺口。</p>
+    <div class="cap-hint" id="capHint" hidden></div>
     <div class="qty-list" id="qtyList"></div>
   </section>
 
@@ -256,6 +294,7 @@ table.pv tr:last-child td{border-bottom:none;}
   </section>
 
   <section id="results" hidden>
+    <div class="cap-box" id="capBox" hidden></div>
     <div class="kpis" id="kpis"></div>
     <div class="toolbar">
       <input type="search" id="search" placeholder="搜尋料號 / 品名…">
@@ -275,8 +314,10 @@ table.pv tr:last-child td{border-bottom:none;}
         <thead>
           <tr>
             <th>料號</th><th>品名</th><th>類型</th>
+            <th class="num-col">每台用量</th>
             <th class="num-col">需求量</th><th class="num-col">既有庫存</th>
-            <th class="num-col">進貨(在途)</th><th class="num-col">可用合計</th>
+            <th class="num-col">進料(在途)</th><th class="num-col">可用合計</th>
+            <th class="num-col">可支撐台數</th>
             <th class="num-col">缺料量</th><th>狀態</th>
           </tr>
         </thead>
@@ -284,7 +325,7 @@ table.pv tr:last-child td{border-bottom:none;}
       </table>
       <div id="emptyState" class="empty" hidden>尚無結果，請先上傳資料並按「開始盤點」。</div>
     </div>
-    <p class="footnote">註：可用合計＝既有庫存＋進貨(在途)；缺料量＝max(0, 需求量 − 可用合計)。多階 BOM 會先扣除半成品庫存後再展開下階需求；「待組裝」＝廠內組裝的半成品，其子件需求已另行展開，不列為採購缺料。</p>
+    <p class="footnote"><b>每台用量</b>＝做 1 台成品需要這個料的總量（多階 BOM 已展開累加）。<b>可支撐台數</b>＝可用合計 ÷ 每台用量，只算該料號自身庫存；整體可生產台數另計入半成品庫存，因此可能高於表中最小值。<b>缺料量</b>＝max(0, 需求量 − 可用合計)。「待組裝」＝廠內組裝的半成品，其子件需求已另行展開，不列為採購缺料。</p>
   </section>
 
 </main>
@@ -318,8 +359,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 </script>
 <script>
 /* compute.js — 純計算引擎（可在瀏覽器與 Node 共用）
- * 輸入：已映射欄位的 BOM / 庫存 / 進貨 記錄 + 生產數量覆寫
- * 輸出：每個料號的需求量、現有庫存、進貨、可用、缺料、狀態
+ * v3：新增「可生產台數」反推、每台累計用量、可支撐台數、補料階梯
+ *
+ * 輸入：已映射欄位的 BOM / 庫存 / 進料 記錄 + 生產數量覆寫
+ * 輸出：
+ *   rows      每個料號的需求量、庫存、進料、可用、缺料、每台用量、可支撐台數
+ *   kpi       統計（含可生產台數／目標台數／缺口台數）
+ *   capacity  可生產台數、瓶頸料號、零庫存料號數
+ *   ladder    補料階梯（補哪幾項可以多生產幾台）
  */
 (function (global) {
   "use strict";
@@ -331,6 +378,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var n = parseFloat(s);
     return isFinite(n) ? n : 0;
   }
+
+  function has(obj, k) { return Object.prototype.hasOwnProperty.call(obj, k); }
 
   // bom: [{productCode, productName, productionQty, materialCode, materialName, qtyPer, unit}]
   // inv: [{code, name, onHand, unit}]
@@ -369,7 +418,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
       if (!productMeta[p]) productMeta[p] = { name: r.productName || "", planned: toNum(r.productionQty) };
       else if (toNum(r.productionQty) > productMeta[p].planned) productMeta[p].planned = toNum(r.productionQty);
-      // 材料本身的品名／單位（供葉節點在庫存、進貨都沒有時回填）
+      // 材料本身的品名／單位（供葉節點在庫存、進料都沒有時回填）
       var mm = matMeta[m] || (matMeta[m] = { name: "", unit: "" });
       if (!mm.name && r.materialName) mm.name = r.materialName;
       if (!mm.unit && r.unit) mm.unit = r.unit;
@@ -391,6 +440,66 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return (i ? i.onHand : 0) + (n ? n.incoming : 0);
     }
 
+    // ================= 可生產台數（與目標數量無關） =================
+    // 主產品：目標量最大者；都為 0 時取 BOM 中第一個產品
+    var prodList = Object.keys(bomByProduct);
+    var primary = null;
+    prodList.forEach(function (p) {
+      if (!primary) { primary = p; return; }
+      var a = productMeta[p] ? productMeta[p].planned : 0;
+      var b = productMeta[primary] ? productMeta[primary].planned : 0;
+      if (a > b) primary = p;
+    });
+
+    /* 每台累計用量：從主產品完整展開到所有階層，算出「做 1 台需要多少這個料」。
+     * 同一料號掛在不同父階時會累加；帶路徑保護避免 BOM 循環時無限遞迴。 */
+    var cum = {};
+    (function explode(p, mult, path) {
+      (bomByProduct[p] || []).forEach(function (e) {
+        cum[e.child] = (cum[e.child] || 0) + mult * e.qtyPer;
+        if (bomByProduct[e.child] && path.indexOf(e.child) < 0) {
+          explode(e.child, mult * e.qtyPer, path.concat([e.child]));
+        }
+      });
+    })(primary, 1, [primary]);
+
+    /* 遞迴推算「某料號最多能湊出幾台」：
+     *   cap(葉節點) = 可用量
+     *   cap(總成)   = 總成自身庫存 + min(子件 cap / 單位用量)
+     * 這樣半成品有庫存時，就不必再吃它的子件，比單純取葉節點最小值更接近真實。 */
+    function makeCap(getAvail) {
+      var memo = {}, busy = {};
+      function cap(p) {
+        if (has(memo, p)) return memo[p];
+        if (busy[p]) return 0;                 // 循環保護
+        busy[p] = true;
+        var kids = bomByProduct[p] || [], v;
+        if (!kids.length) {
+          v = getAvail(p);
+        } else {
+          var m = Infinity, hasQty = false;
+          for (var i = 0; i < kids.length; i++) {
+            var e = kids[i];
+            if (!(e.qtyPer > 0)) continue;
+            hasQty = true;
+            var c = Math.floor(cap(e.child) / e.qtyPer);
+            if (c < m) m = c;
+          }
+          v = getAvail(p) + (hasQty ? m : Infinity);
+        }
+        busy[p] = false;
+        memo[p] = v;
+        return v;
+      }
+      return cap;
+    }
+
+    var capOf = makeCap(availOf);
+    var capUnits = primary ? capOf(primary) : 0;
+    var targetQty = primary && productMeta[primary] ? productMeta[primary].planned : 0;
+    var gapQty = isFinite(capUnits) ? Math.max(0, targetQty - capUnits) : 0;
+
+    // ================= 需求量與缺料（依目標台數） =================
     // 拓撲排序（父在子前），含循環保護
     var topo = [], state = {}, warnings = [];
     function dfs(p) {
@@ -420,10 +529,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     // 彙整要顯示的料號：
     //  1) 有需求的原料（葉節點）
     //  2) 有需求且被上層使用的半成品（同時是產品）
-    //  3) 僅存在於庫存/進貨、但未出現在 BOM 的料號（呆滯）
+    //  3) BOM 結構中的料號（目標台數為 0 時仍要看得到整份結構）
+    //  4) 僅存在於庫存/進料、但未出現在 BOM 的料號（呆滯）
     var codes = {};
     Object.keys(leafGross).forEach(function (c) { if (leafGross[c] > 0) codes[c] = true; });
     Object.keys(allProducts).forEach(function (p) { if (usedAsMaterial[p] && (gross[p] || 0) > 0) codes[p] = true; });
+    Object.keys(cum).forEach(function (c) { if (cum[c] > 0) codes[c] = true; });
     Object.keys(invMap).forEach(function (c) { if (!allProducts[c] && leafGross[c] == null) codes[c] = true; });
     Object.keys(incMap).forEach(function (c) { if (!allProducts[c] && leafGross[c] == null) codes[c] = true; });
 
@@ -440,15 +551,22 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var name = (productMeta[code] && productMeta[code].name) || mm.name ||
         (invMap[code] && invMap[code].name) || (incMap[code] && incMap[code].name) || "";
       var unit = (invMap[code] && invMap[code].unit) || (incMap[code] && incMap[code].unit) || mm.unit || "";
+      var perUnit = cum[code] || 0;
+      // 可支撐台數：只看「這個料號自己的庫存」能撐幾台（不含半成品替代效果）
+      var maxUnits = perUnit > 0 ? Math.floor(available / perUnit) : Infinity;
       var status;
-      if (required === 0 && available === 0) status = "無資料";
+      if (perUnit > 0) {
+        // 在 BOM 結構內：只分「缺料／待組裝／足夠」，不列呆滯
+        status = shortage > 0 ? (isProduct ? "待組裝" : "缺料") : "足夠";
+      } else if (required === 0 && available === 0) status = "無資料";
       else if (required === 0 && available > 0) status = "無需求(呆滯)";
-      else if (shortage > 0) status = isProduct ? "待組裝" : "缺料";
+      else if (shortage > 0) status = "缺料";
       else status = "足夠";
       return {
         code: code, name: name, type: type, unit: unit,
         required: required, onHand: onHand, incoming: incoming,
-        available: available, shortage: shortage, status: status
+        available: available, shortage: shortage, status: status,
+        perUnit: perUnit, maxUnits: maxUnits
       };
     });
 
@@ -458,18 +576,82 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return String(a.code).localeCompare(String(b.code));
     });
 
+    // ================= 瓶頸 =================
+    var bottleneck = rows.filter(function (r) {
+      return r.perUnit > 0 && isFinite(r.maxUnits);
+    }).sort(function (a, b) {
+      return a.maxUnits - b.maxUnits || b.shortage - a.shortage;
+    }).slice(0, 6).map(function (r) {
+      return {
+        code: r.code, name: r.name, type: r.type, unit: r.unit,
+        perUnit: r.perUnit, available: r.available, maxUnits: r.maxUnits, shortage: r.shortage
+      };
+    });
+
+    var zeroStockItems = 0;
+    rows.forEach(function (r) { if (r.perUnit > 0 && r.available <= 0) zeroStockItems++; });
+
+    // ================= 補料階梯 =================
+    /* 從目前可生產台數出發，每次只補「達到下一台還不夠」的葉節點料號，
+     * 看看補完能跳到幾台。讓使用者知道「再補哪幾項就能多做幾台」。 */
+    var ladder = { steps: [], reach: capUnits };
+    (function () {
+      if (!primary || !isFinite(capUnits)) return;
+      var a = {};
+      Object.keys(cum).forEach(function (c) { a[c] = availOf(c); });
+      var cur = capUnits, guard = 0;
+      while (guard++ < 6) {
+        var next = cur + 1, added = [];
+        Object.keys(cum).forEach(function (c) {
+          if (bomByProduct[c]) return;            // 總成由子件組成，只補採購件
+          if (!(cum[c] > 0)) return;
+          var need = cum[c] * next;
+          if ((a[c] || 0) < need) {
+            added.push({ code: c, qty: need - (a[c] || 0) });
+            a[c] = need;
+          }
+        });
+        if (!added.length) break;
+        var nc = makeCap(function (c) { return a[c] || 0; })(primary);
+        if (!(nc > cur)) break;
+        ladder.steps.push({ from: cur, to: nc, added: added });
+        cur = nc;
+        if (cur > 1e5) break;
+      }
+      ladder.reach = cur;
+    })();
+
+    // ================= KPI =================
     var kpi = {
       total: rows.length, shortageItems: 0, shortageQty: 0, idleItems: 0, requiredItems: 0,
-      assemblyItems: 0, assemblyQty: 0
+      assemblyItems: 0, assemblyQty: 0,
+      capacityUnits: isFinite(capUnits) ? capUnits : null,
+      capacityUnlimited: !isFinite(capUnits),
+      targetQty: targetQty,
+      gapQty: gapQty,
+      perUnitItems: Object.keys(cum).length,
+      zeroStockItems: zeroStockItems
     };
     rows.forEach(function (r) {
       if (r.status === "缺料") { kpi.shortageItems++; kpi.shortageQty += r.shortage; }
       if (r.status === "待組裝") { kpi.assemblyItems++; kpi.assemblyQty += r.shortage; }
       if (r.required > 0) kpi.requiredItems++;
-      if (r.required === 0 && r.available > 0) kpi.idleItems++;
+      if (r.status === "無需求(呆滯)") kpi.idleItems++;
     });
 
-    return { rows: rows, kpi: kpi, warnings: warnings };
+    var capacity = {
+      product: primary || "",
+      name: (primary && productMeta[primary] && productMeta[primary].name) || primary || "",
+      units: isFinite(capUnits) ? capUnits : null,
+      unlimited: !isFinite(capUnits),
+      target: targetQty,
+      gap: gapQty,
+      bottleneck: bottleneck,
+      zeroStockItems: zeroStockItems,
+      perUnitItems: Object.keys(cum).length
+    };
+
+    return { rows: rows, kpi: kpi, warnings: warnings, capacity: capacity, ladder: ladder };
   }
 
   var api = { toNum: toNum, computeResults: computeResults };
@@ -500,14 +682,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   var CFG = {
     bom: {
-      label: "產品生產 BOM 表",
+      label: "產品 BOM 表",
       fields: [
         { k: "productCode", label: "產品料號(選填)", req: false,
           kw: ["產品料號", "产品料号", "成品料號", "成品料号", "產品編碼", "产品编码",
-               "成品編碼", "成品编码", "產品代碼", "产品代码", "productcode", "product",
+               "成品編碼", "成品编码", "產品代碼", "产品代码", "產品編號", "产品编号",
+               "機種", "机种", "機型", "机型", "productcode", "product",
                "訂單號", "订单号"] },
         { k: "productName", label: "產品名稱(選填)", req: false,
-          kw: ["產品名稱", "产品名称", "成品名稱", "成品名称", "productname"] },
+          kw: ["產品名稱", "产品名称", "成品名稱", "成品名称", "機種名稱", "机种名称", "productname"] },
         { k: "productionQty", label: "生產數量(選填)", req: false,
           kw: ["生產數量", "生产数量", "計畫生產", "计划生产", "計畫量", "计划量",
                "需求數量", "需求数量", "訂單數量", "订单数量", "產量", "产量", "planned"] },
@@ -517,6 +700,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         { k: "materialName", label: "材料名稱(選填)", req: false, kw: NAME_KW },
         { k: "qtyPer", label: "單位用量", req: true,
           kw: ["單位用量", "单位用量", "單台用量", "单台用量", "每台用量", "用量/台",
+               "單機用量", "单机用量", "標準用量", "标准用量", "組成用量", "组成用量",
                "每單位用量", "每单位用量", "用量", "qtyper", "perunit"] },
         { k: "unit", label: "單位(選填)", req: false, kw: UNIT_KW }
       ]
@@ -527,20 +711,22 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         { k: "code", label: "材料料號", req: true, kw: CODE_KW },
         { k: "name", label: "材料名稱(選填)", req: false, kw: NAME_KW },
         { k: "onHand", label: "現有庫存", req: true,
-          kw: ["數量合計", "数量合计", "現有庫存", "现有库存", "庫存量", "库存量",
-               "期末數量", "期末数量", "結存", "结存", "在庫", "在库", "庫存", "库存",
-               "onhand", "stock", "qty", "數量", "数量"] },
+          kw: ["數量合計", "数量合计", "現有庫存", "现有库存", "庫存數量", "库存数量",
+               "庫存量", "库存量", "期末數量", "期末数量", "結存", "结存",
+               "在庫", "在库", "庫存", "库存", "onhand", "stock", "qty", "數量", "数量"] },
         { k: "unit", label: "單位(選填)", req: false, kw: UNIT_KW }
       ]
     },
     inc: {
-      label: "進貨表",
+      label: "進料／進貨表",
       fields: [
         { k: "code", label: "材料料號", req: true, kw: CODE_KW },
         { k: "name", label: "材料名稱(選填)", req: false, kw: NAME_KW },
-        { k: "incoming", label: "進貨數量", req: true,
-          kw: ["進貨數量", "进货数量", "到貨數量", "到货数量", "入庫數量", "入库数量",
-               "進貨", "进货", "到貨", "到货", "入庫", "入库",
+        { k: "incoming", label: "進料數量", req: true,
+          kw: ["進料數量", "进料数量", "進貨數量", "进货数量", "到貨數量", "到货数量",
+               "入庫數量", "入库数量", "採購數量", "采购数量", "未交數量", "未交数量",
+               "待交數量", "待交数量", "在途數量", "在途数量",
+               "進料", "进料", "進貨", "进货", "到貨", "到货", "入庫", "入库",
                "incoming", "receipt", "qty", "數量", "数量"] },
         { k: "status", label: "狀態(選填)", req: false, kw: ["狀態", "状态", "status"] },
         { k: "eta", label: "預計到貨(選填)", req: false,
@@ -834,13 +1020,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   var CFG = Mapping.CFG;
   var norm = Mapping.norm;
-  var autoMap = Mapping.autoMap;
   var Imp = Import;
 
   var MAX_ROWS = 30000;   // 單一工作表最多讀取列數（避免百萬列樞紐表拖垮瀏覽器）
 
   var state = { bom: null, inv: null, inc: null };
   var lastResults = null;
+  var noTargetWarn = false;
 
   // ---- 工具 ----
   function esc(s) {
@@ -851,6 +1037,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   function fmt(n) {
     if (n == null || isNaN(n)) return "0";
     return Number(n).toLocaleString("zh-TW", { maximumFractionDigits: 2 });
+  }
+  function fmtUnits(u) { return isFinite(u) ? fmt(u) : "—"; }
+  // 件數：整數直接顯示，有小數才保留一位
+  function fmtQty(n) {
+    var v = Number(n) || 0;
+    return Number.isInteger(v) ? fmt(v) : fmt(Math.round(v * 10) / 10);
   }
 
   // ---- 讀檔 ----
@@ -888,6 +1080,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         applyOrderQty(type);
         renderCard(type);
         if (type === "bom") renderQtyPanel();
+        else renderCapHint();
         updateRunState();
       } catch (err) {
         alert("讀取失敗：" + err.message);
@@ -918,6 +1111,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     applyOrderQty(type);
     renderCard(type);
     if (type === "bom") renderQtyPanel();
+    else renderCapHint();
     updateRunState();
   }
 
@@ -990,12 +1184,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       sel.addEventListener("change", function () {
         s.mapping[sel.dataset.field] = parseInt(sel.value, 10);
         if (type === "bom") renderQtyPanel();
+        else renderCapHint();
         updateRunState();
       });
     });
   }
 
-  // ---- 生產數量面板 ----
+  // ---- 生產目標面板 ----
   function renderQtyPanel() {
     var sec = document.getElementById("qtySection");
     var list = document.getElementById("qtyList");
@@ -1007,8 +1202,42 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     list.innerHTML = prods.map(function (p) {
       return '<div class="qty-row"><span class="qty-code">' + esc(p.code) + '</span>' +
         '<span class="qty-name">' + esc(p.name) + '</span>' +
-        '<input type="number" min="0" step="1" data-code="' + esc(p.code) + '" value="' + (p.qty || "") + '"></div>';
+        '<span class="qty-lbl">要做</span>' +
+        '<input type="number" min="0" step="1" data-code="' + esc(p.code) + '" value="' + (p.qty || "") + '">' +
+        '<span class="qty-lbl">台</span></div>';
     }).join("");
+    renderCapHint();
+  }
+
+  /* 即時預覽：BOM＋庫存一上傳就能知道「最多能做幾台」，不必先按盤點 */
+  function renderCapHint() {
+    var el = document.getElementById("capHint");
+    if (!el) return;
+    if (!state.bom || !state.inv) { el.hidden = true; return; }
+    var res;
+    try {
+      res = Compute.computeResults(
+        Imp.buildRecords("bom", state.bom),
+        Imp.buildRecords("inv", state.inv),
+        state.inc ? Imp.buildRecords("inc", state.inc) : [],
+        {}
+      );
+    } catch (e) { el.hidden = true; return; }
+    var c = res.capacity;
+    if (!c || !c.product) { el.hidden = true; return; }
+
+    el.hidden = false;
+    var html = "以現有庫存" + (state.inc ? "＋進料" : "") + "推算，<b>" + esc(c.name || c.product) +
+      "</b> 最多可生產 <b>" + (c.unlimited ? "不限" : fmt(c.units) + " 台") + "</b>";
+    if (!c.unlimited && c.zeroStockItems > 0) {
+      html += "；其中 <b class=\"bad\">" + c.zeroStockItems + "</b> 個料號完全沒有庫存";
+    }
+    if (res.ladder && res.ladder.steps.length) {
+      var s0 = res.ladder.steps[0];
+      var q = s0.added.reduce(function (a, x) { return a + x.qty; }, 0);
+      html += "。再補 " + s0.added.length + " 項共 " + fmtQty(q) + " 件 → 可做 " + fmt(s0.to) + " 台";
+    }
+    el.innerHTML = html;
   }
 
   function requiredMapped(type) {
@@ -1025,7 +1254,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     var ok = requiredMapped("bom") && requiredMapped("inv");
     btn.disabled = !ok;
     if (ok) {
-      hint.textContent = state.inc ? "資料就緒，按「開始盤點」。" : "資料就緒（未上傳進貨表，在途視為 0）。";
+      hint.textContent = state.inc ? "資料就緒，按「開始盤點」。" : "資料就緒（未上傳進料表，在途視為 0）。";
       hint.style.color = "var(--green)";
     } else {
       var miss = [];
@@ -1047,9 +1276,11 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
     var hasQty = Object.keys(overrides).some(function (k) { return Compute.toNum(overrides[k]) > 0; });
     var bomHasQtyCol = state.bom.mapping.productionQty != null && state.bom.mapping.productionQty >= 0;
+    noTargetWarn = false;
     if (!hasQty && !bomHasQtyCol) {
-      alert("請先在「生產數量設定」填入至少一個產品的計畫生產量，才能計算需求量。");
-      return;
+      // 沒填目標就先用 1 台算，並在結果區提示
+      var prods = Imp.listProducts(state.bom);
+      if (prods.length) { overrides[prods[0].code] = 1; noTargetWarn = true; }
     }
     var res = Compute.computeResults(bom, inv, inc, overrides);
     lastResults = res;
@@ -1066,13 +1297,69 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return "st-na";
   }
 
+  // ---- 可生產台數說明盒 ----
+  function renderCapBox(res) {
+    var box = document.getElementById("capBox");
+    var c = res.capacity, k = res.kpi;
+    if (!c || !c.product) { box.hidden = true; return; }
+    box.hidden = false;
+
+    var side;
+    if (noTargetWarn) {
+      side = "未設定目標台數，以下暫以 <b>1</b> 台計算缺料";
+    } else if (k.targetQty > 0) {
+      side = "目標 <b>" + fmt(k.targetQty) + "</b> 台 → 缺口 <b class=\"" +
+        (k.gapQty > 0 ? "bad" : "good") + "\">" + fmt(k.gapQty) + "</b> 台";
+    } else {
+      side = "尚未設定目標台數";
+    }
+
+    var sub = "產品 " + (c.name || c.product) + "｜每台用料 " + fmt(c.perUnitItems) + " 項";
+    if (!c.unlimited && c.zeroStockItems > 0) sub += "｜" + c.zeroStockItems + " 個料號零庫存";
+
+    var lad = "";
+    var steps = (res.ladder && res.ladder.steps) || [];
+    if (steps.length) {
+      var shown = steps.slice(0, 4);
+      lad = '<div class="cap-ladder"><div class="cap-lad-title">補料階梯：再補哪幾項可以多生產幾台</div>' +
+        shown.map(function (s, i) {
+          var q = s.added.reduce(function (a, x) { return a + x.qty; }, 0);
+          var chips = s.added.slice(0, 5).map(function (x) {
+            return esc(x.code) + "×" + fmtQty(x.qty);
+          }).join("、");
+          if (s.added.length > 5) chips += " 等 " + s.added.length + " 項";
+          return '<div class="cap-lad-row"><span class="cap-step">第 ' + (i + 1) + ' 關</span>' +
+            "再補 <b>" + s.added.length + "</b> 項共 <b>" + fmtQty(q) + "</b> 件 → 可做 <b>" + fmt(s.to) + "</b> 台" +
+            '<span class="cap-chips">' + chips + "</span></div>";
+        }).join("");
+      if (steps.length > shown.length) {
+        lad += '<div class="cap-lad-more">再往上補可做到 ' + fmt(res.ladder.reach) +
+          " 台（完整階梯見匯出 Excel 的「生產能力」表）</div>";
+      }
+      lad += "</div>";
+    }
+
+    box.innerHTML =
+      '<div class="cap-main">' +
+        '<div class="cap-num"><span class="cap-big">' + (c.unlimited ? "∞" : fmt(c.units)) + "</span>" +
+          '<span class="cap-unit">台</span></div>' +
+        '<div class="cap-side"><div class="cap-line">' + side + "</div>" +
+          '<div class="cap-sub">' + esc(sub) + "</div></div>" +
+      "</div>" + lad;
+  }
+
   function renderResults(res) {
     var k = res.kpi;
     document.getElementById("kpis").innerHTML =
+      '<div class="kpi cap"><div class="k-label">可生產台數</div><div class="k-val">' +
+        (k.capacityUnlimited ? "∞" : fmt(k.capacityUnits)) + "</div></div>" +
+      '<div class="kpi"><div class="k-label">目標台數</div><div class="k-val">' + fmt(k.targetQty) + "</div></div>" +
+      '<div class="kpi gap"><div class="k-label">缺口台數</div><div class="k-val">' + fmt(k.gapQty) + "</div></div>" +
       '<div class="kpi warn" data-filter="缺料" role="button" tabindex="0"><div class="k-label">缺料料號（要採購）</div><div class="k-val">' + k.shortageItems + "</div></div>" +
       '<div class="kpi warn" data-filter="缺料" role="button" tabindex="0"><div class="k-label">缺料總量</div><div class="k-val">' + fmt(k.shortageQty) + "</div></div>" +
-      '<div class="kpi asm" data-filter="待組裝" role="button" tabindex="0"><div class="k-label">待組裝（廠內做）</div><div class="k-val">' + k.assemblyItems + "</div></div>" +
-      '<div class="kpi idle" data-filter="無需求(呆滯)" role="button" tabindex="0"><div class="k-label">無需求庫存</div><div class="k-val">' + k.idleItems + "</div></div>";
+      '<div class="kpi asm" data-filter="待組裝" role="button" tabindex="0"><div class="k-label">待組裝（廠內做）</div><div class="k-val">' + k.assemblyItems + "</div></div>";
+
+    renderCapBox(res);
 
     // 篩選選單加上筆數
     var sel = document.getElementById("filterStatus");
@@ -1088,7 +1375,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     sel.value = k.shortageItems > 0 ? "缺料" : "all";
 
     // KPI 卡片可點擊切換篩選
-    document.querySelectorAll("#kpis .kpi").forEach(function (card) {
+    document.querySelectorAll("#kpis .kpi[data-filter]").forEach(function (card) {
       function go() {
         sel.value = card.dataset.filter;
         applyFilter();
@@ -1122,14 +1409,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     }
     empty.hidden = true;
     body.innerHTML = rows.map(function (r) {
+      var mu = isFinite(r.maxUnits) ? fmt(r.maxUnits) : "—";
+      var muCls = "num-col" + (isFinite(r.maxUnits) && r.maxUnits === 0 ? " shortage-cell" : "");
       return "<tr>" +
         '<td class="code">' + esc(r.code) + "</td>" +
         "<td>" + esc(r.name) + "</td>" +
         '<td><span class="type-badge">' + esc(r.type) + "</span></td>" +
+        '<td class="num-col">' + (r.perUnit > 0 ? fmt(r.perUnit) : "—") + "</td>" +
         '<td class="num-col">' + fmt(r.required) + "</td>" +
         '<td class="num-col">' + fmt(r.onHand) + "</td>" +
         '<td class="num-col">' + fmt(r.incoming) + "</td>" +
         '<td class="num-col">' + fmt(r.available) + "</td>" +
+        '<td class="' + muCls + '">' + mu + "</td>" +
         '<td class="num-col' + (r.status === "缺料" ? " shortage-cell" : "") + '">' + fmt(r.shortage) + "</td>" +
         '<td><span class="st ' + statusClass(r.status) + '">' + esc(r.status) + "</span></td>" +
         "</tr>";
@@ -1139,17 +1430,50 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   // ---- 匯出 ----
   function exportExcel() {
     if (!lastResults || !lastResults.rows.length) { alert("尚無結果可匯出。"); return; }
+    var wb = XLSX.utils.book_new();
+
     var data = lastResults.rows.map(function (r) {
       return {
         "料號": r.code, "品名": r.name, "類型": r.type, "單位": r.unit,
-        "需求量": r.required, "既有庫存": r.onHand, "進貨(在途)": r.incoming,
-        "可用合計": r.available, "缺料量": r.shortage, "狀態": r.status
+        "每台用量": r.perUnit || 0,
+        "需求量": r.required, "既有庫存": r.onHand, "進料(在途)": r.incoming,
+        "可用合計": r.available,
+        "可支撐台數": isFinite(r.maxUnits) ? r.maxUnits : "",
+        "缺料量": r.shortage, "狀態": r.status
       };
     });
     var ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = [{ wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 14 }];
-    var wb = XLSX.utils.book_new();
+    ws["!cols"] = [{ wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 6 }, { wch: 10 },
+      { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 11 }, { wch: 9 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(wb, ws, "欠料盤點");
+
+    var c = lastResults.capacity;
+    var info = [
+      ["生產能力摘要", ""],
+      ["產品", c.name || c.product],
+      ["可生產台數", c.unlimited ? "不限" : c.units],
+      ["目標台數", c.target],
+      ["缺口台數", c.gap],
+      ["零庫存料號數", c.zeroStockItems],
+      ["每台用料項數", c.perUnitItems],
+      [],
+      ["瓶頸料號", "品名", "每台用量", "可用合計", "可支撐台數", "缺料量"]
+    ];
+    c.bottleneck.forEach(function (b) {
+      info.push([b.code, b.name, b.perUnit, b.available, b.maxUnits, b.shortage]);
+    });
+    if (lastResults.ladder && lastResults.ladder.steps.length) {
+      info.push([], ["補料階梯", "補料項數", "補料件數", "可做到幾台"]);
+      lastResults.ladder.steps.forEach(function (s) {
+        var q = s.added.reduce(function (a, x) { return a + x.qty; }, 0);
+        info.push([s.from + " 台 → " + s.to + " 台", s.added.length, q,
+          s.added.map(function (x) { return x.code + "×" + x.qty; }).join("、")]);
+      });
+    }
+    var ws2 = XLSX.utils.aoa_to_sheet(info);
+    ws2["!cols"] = [{ wch: 22 }, { wch: 24 }, { wch: 10 }, { wch: 11 }, { wch: 11 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws2, "生產能力");
+
     XLSX.writeFile(wb, "庫存欠料盤點結果.xlsx");
   }
 
@@ -1164,7 +1488,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       ["M-2001", "LED紅光晶片", 1500, "pcs"],
       ["M-2002", "電源驅動", 800, "pcs"],
       ["M-2003", "外殼", 2000, "pcs"]],
-    inc: [["材料料號", "材料名稱", "進貨數量", "預計到貨日", "狀態"],
+    inc: [["材料料號", "材料名稱", "進料數量", "預計到貨日", "狀態"],
       ["M-2001", "LED紅光晶片", 500, "2026-11-05", "在途"],
       ["M-2002", "電源驅動", 200, "2026-11-10", "在途"]]
   };
@@ -1183,6 +1507,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     card.querySelector("input[type=file]").value = "";
     renderCard(type);
     if (type === "bom") renderQtyPanel();
+    else renderCapHint();
     updateRunState();
   }
 
