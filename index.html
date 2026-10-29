@@ -13,7 +13,7 @@
   --green:#1E7A4B;
   --amber:#8A5A00;
   --gray:#44546A;
-  --muted:#6B7A8C;
+  --muted:#5C6B7A;
   --line:#E2E8F0;
   --bg:#EEF2F6;
   --card:#FFFFFF;
@@ -135,6 +135,27 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
   .topbar-inner{flex-direction:column;align-items:flex-start;}
 }
 
+/* ---- 讀取摘要（v2 新增） ---- */
+.read-summary{margin-top:10px;background:#F4F8FC;border:1px solid #D9E4EF;border-radius:8px;padding:9px 10px;}
+.rs-row{display:flex;align-items:center;gap:8px;}
+.rs-row label{font-size:12px;color:var(--gray);flex:0 0 56px;}
+.rs-static{font-size:12.5px;font-weight:700;color:var(--navy);}
+.sheet-pick{flex:1;min-width:0;font-size:12.5px;padding:5px 8px;border:1px solid #C9D5E1;border-radius:7px;background:#fff;color:#1A2B3C;}
+.rs-notes{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:6px;}
+.rs-notes span{font-size:11.5px;color:var(--muted);}
+.rs-notes span::before{content:"·";margin-right:4px;color:#9BAAB9;}
+.rs-preview{margin-top:6px;}
+.rs-preview summary{font-size:11.5px;color:var(--navy);cursor:pointer;font-weight:600;list-style:none;}
+.rs-preview summary::before{content:"▸ ";color:var(--muted);}
+.rs-preview[open] summary::before{content:"▾ ";}
+.pv-wrap{margin-top:6px;overflow-x:auto;border:1px solid #DDE7F0;border-radius:6px;background:#fff;}
+table.pv{border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%;}
+table.pv th{background:#EDF3F9;color:var(--navy);font-weight:700;padding:4px 7px;border-bottom:1px solid #DDE7F0;text-align:left;}
+table.pv td{padding:4px 7px;border-bottom:1px solid #F0F4F8;color:#3B4A5A;max-width:150px;overflow:hidden;text-overflow:ellipsis;}
+table.pv tr:last-child td{border-bottom:none;}
+.st-asm{background:#E6EEF9;color:#1F5C99;}
+.kpi.asm .k-val{color:#1F5C99;}
+
 </style>
 </head>
 <body>
@@ -155,7 +176,7 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
 
   <section class="step">
     <h2 class="step-title"><span class="num">1</span> 上傳三份資料</h2>
-    <p class="step-desc">支援 Excel（.xlsx／.xls）與 CSV。上傳後可確認「欄位對應」；欄位名稱不同也能手動指定。</p>
+    <p class="step-desc">支援 Excel（.xlsx／.xls／.csv，甚至沒有副檔名也能讀）。系統會自動找表頭列、自動挑選最相符的工作表；欄位名稱不同也能手動指定。</p>
 
     <div class="uploads">
       <!-- BOM -->
@@ -164,10 +185,11 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
         <div class="dropzone">
           <div class="dz-icon">📄</div>
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
-          <div class="dz-hint">.xlsx / .xls / .csv</div>
+          <div class="dz-hint">.xlsx / .xls / .csv / 任意副檔名</div>
         </div>
-        <input type="file" accept=".xlsx,.xls,.csv" hidden>
+        <input type="file" hidden>
         <div class="file-status" hidden></div>
+        <div class="read-summary" hidden></div>
         <div class="mapping" hidden></div>
         <div class="uc-actions">
           <button type="button" class="tpl-btn">下載範本</button>
@@ -181,10 +203,11 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
         <div class="dropzone">
           <div class="dz-icon">📦</div>
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
-          <div class="dz-hint">.xlsx / .xls / .csv</div>
+          <div class="dz-hint">.xlsx / .xls / .csv / 任意副檔名</div>
         </div>
-        <input type="file" accept=".xlsx,.xls,.csv" hidden>
+        <input type="file" hidden>
         <div class="file-status" hidden></div>
+        <div class="read-summary" hidden></div>
         <div class="mapping" hidden></div>
         <div class="uc-actions">
           <button type="button" class="tpl-btn">下載範本</button>
@@ -200,8 +223,9 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
           <div class="dz-text">拖放檔案到此，或點擊選擇</div>
           <div class="dz-hint">.xlsx / .xls / .csv（未上傳則在途進貨視為 0）</div>
         </div>
-        <input type="file" accept=".xlsx,.xls,.csv" hidden>
+        <input type="file" hidden>
         <div class="file-status" hidden></div>
+        <div class="read-summary" hidden></div>
         <div class="mapping" hidden></div>
         <div class="uc-actions">
           <button type="button" class="tpl-btn">下載範本</button>
@@ -232,6 +256,7 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
       <select id="filterStatus">
         <option value="all">全部狀態</option>
         <option value="缺料">只看缺料</option>
+        <option value="待組裝">只看待組裝</option>
         <option value="足夠">只看足夠</option>
         <option value="無需求(呆滯)">只看呆滯</option>
       </select>
@@ -252,7 +277,7 @@ td.num-col{text-align:right;font-variant-numeric:tabular-nums;}
       </table>
       <div id="emptyState" class="empty" hidden>尚無結果，請先上傳資料並按「開始盤點」。</div>
     </div>
-    <p class="footnote">註：可用合計＝既有庫存＋進貨(在途)；缺料量＝max(0, 需求量 − 可用合計)。多階 BOM 會先扣除半成品庫存後再展開下階需求。</p>
+    <p class="footnote">註：可用合計＝既有庫存＋進貨(在途)；缺料量＝max(0, 需求量 − 可用合計)。多階 BOM 會先扣除半成品庫存後再展開下階需求；「待組裝」＝廠內組裝的半成品，其子件需求已另行展開，不列為採購缺料。</p>
   </section>
 
 </main>
@@ -325,7 +350,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (!o.unit && r.unit) o.unit = r.unit;
     });
 
-    var bomByProduct = {}, productMeta = {}, allProducts = {}, usedAsMaterial = {};
+    var bomByProduct = {}, productMeta = {}, allProducts = {}, usedAsMaterial = {}, matMeta = {};
 
     (bom || []).forEach(function (r) {
       var p = String(r.productCode == null ? "" : r.productCode).trim();
@@ -337,6 +362,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
       if (!productMeta[p]) productMeta[p] = { name: r.productName || "", planned: toNum(r.productionQty) };
       else if (toNum(r.productionQty) > productMeta[p].planned) productMeta[p].planned = toNum(r.productionQty);
+      // 材料本身的品名／單位（供葉節點在庫存、進貨都沒有時回填）
+      var mm = matMeta[m] || (matMeta[m] = { name: "", unit: "" });
+      if (!mm.name && r.materialName) mm.name = r.materialName;
+      if (!mm.unit && r.unit) mm.unit = r.unit;
     });
 
     Object.keys(qtyOverrides).forEach(function (p) {
@@ -400,12 +429,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       var incoming = incMap[code] ? incMap[code].incoming : 0;
       var available = onHand + incoming;
       var shortage = Math.max(0, required - available);
-      var name = (productMeta[code] && productMeta[code].name) || (invMap[code] && invMap[code].name) || (incMap[code] && incMap[code].name) || "";
-      var unit = (invMap[code] && invMap[code].unit) || (incMap[code] && incMap[code].unit) || "";
+      var mm = matMeta[code] || { name: "", unit: "" };
+      var name = (productMeta[code] && productMeta[code].name) || mm.name ||
+        (invMap[code] && invMap[code].name) || (incMap[code] && incMap[code].name) || "";
+      var unit = (invMap[code] && invMap[code].unit) || (incMap[code] && incMap[code].unit) || mm.unit || "";
       var status;
       if (required === 0 && available === 0) status = "無資料";
       else if (required === 0 && available > 0) status = "無需求(呆滯)";
-      else if (shortage > 0) status = "缺料";
+      else if (shortage > 0) status = isProduct ? "待組裝" : "缺料";
       else status = "足夠";
       return {
         code: code, name: name, type: type, unit: unit,
@@ -420,9 +451,13 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return String(a.code).localeCompare(String(b.code));
     });
 
-    var kpi = { total: rows.length, shortageItems: 0, shortageQty: 0, idleItems: 0, requiredItems: 0 };
+    var kpi = {
+      total: rows.length, shortageItems: 0, shortageQty: 0, idleItems: 0, requiredItems: 0,
+      assemblyItems: 0, assemblyQty: 0
+    };
     rows.forEach(function (r) {
-      if (r.shortage > 0) { kpi.shortageItems++; kpi.shortageQty += r.shortage; }
+      if (r.status === "缺料") { kpi.shortageItems++; kpi.shortageQty += r.shortage; }
+      if (r.status === "待組裝") { kpi.assemblyItems++; kpi.assemblyQty += r.shortage; }
       if (r.required > 0) kpi.requiredItems++;
       if (r.required === 0 && r.available > 0) kpi.idleItems++;
     });
@@ -437,45 +472,79 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 </script>
 <script>
-/* mapping.js — 欄位設定與自動映射（瀏覽器與 Node 共用） */
+/* mapping.js — 欄位設定、自動映射與表頭偵測（瀏覽器與 Node 共用）
+ * v2：補齊 ERP 常見欄名（簡體/繁體）、支援「層級」欄、自動偵測表頭列
+ */
 (function (global) {
   "use strict";
+
+  var CODE_KW = [
+    "材料料號", "材料料号", "物料編碼", "物料编码", "材料編碼", "材料编码",
+    "料件編號", "料件编号", "子件料號", "子件料号", "零件編號", "零件编号",
+    "零件號", "零件号", "物料代碼", "物料代码", "產品料號", "产品料号",
+    "料號", "料号", "編號", "编号", "代碼", "代码", "品號", "品号",
+    "itemcode", "itemno", "partno", "part", "code", "sku"
+  ];
+  var NAME_KW = [
+    "材料名稱", "材料名称", "物料名稱", "物料名称", "零件名稱", "零件名称",
+    "子件名稱", "子件名称", "品名", "名稱", "名称", "name"
+  ];
+  var UNIT_KW = ["單位", "单位", "unit"];
 
   var CFG = {
     bom: {
       label: "產品生產 BOM 表",
       fields: [
-        { k: "productCode", label: "產品料號", req: true, kw: ["產品料號", "产品料号", "成品料號", "成品料号", "產品編碼", "产品编码", "成品編碼", "成品编码", "productcode", "product"] },
-        { k: "productName", label: "產品名稱", req: false, kw: ["產品名稱", "产品名称", "成品名稱", "成品名称", "品名", "productname"] },
-        { k: "productionQty", label: "生產數量(選填)", req: false, kw: ["生產數量", "生产数量", "計畫生產", "计划生产", "計畫量", "计划量", "需求數量", "需求数量", "產量", "产量", "planned"] },
-        { k: "materialCode", label: "材料料號", req: true, kw: ["材料料號", "材料料号", "物料編碼", "物料编码", "材料編碼", "材料编码", "零件號", "零件号", "子件料號", "子件料号", "materialcode", "component", "material"] },
-        { k: "materialName", label: "材料名稱", req: false, kw: ["材料名稱", "材料名称", "物料名稱", "物料名称", "零件名稱", "零件名称", "子件名稱"] },
-        { k: "qtyPer", label: "單位用量", req: true, kw: ["單位用量", "单位用量", "每台用量", "用量/台", "用量", "qtyper", "perunit"] },
-        { k: "unit", label: "單位(選填)", req: false, kw: ["單位", "单位", "unit"] }
+        { k: "productCode", label: "產品料號(選填)", req: false,
+          kw: ["產品料號", "产品料号", "成品料號", "成品料号", "產品編碼", "产品编码",
+               "成品編碼", "成品编码", "產品代碼", "产品代码", "productcode", "product",
+               "訂單號", "订单号"] },
+        { k: "productName", label: "產品名稱(選填)", req: false,
+          kw: ["產品名稱", "产品名称", "成品名稱", "成品名称", "productname"] },
+        { k: "productionQty", label: "生產數量(選填)", req: false,
+          kw: ["生產數量", "生产数量", "計畫生產", "计划生产", "計畫量", "计划量",
+               "需求數量", "需求数量", "訂單數量", "订单数量", "產量", "产量", "planned"] },
+        { k: "level", label: "層級(選填)", req: false,
+          kw: ["层级", "層級", "階層", "阶层", "層次", "层次", "bom层级", "bom層級", "level", "lv"] },
+        { k: "materialCode", label: "材料料號", req: true, kw: CODE_KW },
+        { k: "materialName", label: "材料名稱(選填)", req: false, kw: NAME_KW },
+        { k: "qtyPer", label: "單位用量", req: true,
+          kw: ["單位用量", "单位用量", "單台用量", "单台用量", "每台用量", "用量/台",
+               "每單位用量", "每单位用量", "用量", "qtyper", "perunit"] },
+        { k: "unit", label: "單位(選填)", req: false, kw: UNIT_KW }
       ]
     },
     inv: {
       label: "目前庫存表",
       fields: [
-        { k: "code", label: "材料料號", req: true, kw: ["材料料號", "材料料号", "物料編碼", "物料编码", "料號", "料号", "編號", "编号", "part", "code"] },
-        { k: "name", label: "材料名稱", req: false, kw: ["材料名稱", "材料名称", "物料名稱", "品名", "名稱", "名称", "name"] },
-        { k: "onHand", label: "現有庫存", req: true, kw: ["現有庫存", "现有库存", "庫存量", "库存量", "庫存", "库存", "在庫", "結存", "结存", "onhand", "stock", "qty", "數量", "数量"] },
-        { k: "unit", label: "單位(選填)", req: false, kw: ["單位", "单位", "unit"] }
+        { k: "code", label: "材料料號", req: true, kw: CODE_KW },
+        { k: "name", label: "材料名稱(選填)", req: false, kw: NAME_KW },
+        { k: "onHand", label: "現有庫存", req: true,
+          kw: ["數量合計", "数量合计", "現有庫存", "现有库存", "庫存量", "库存量",
+               "期末數量", "期末数量", "結存", "结存", "在庫", "在库", "庫存", "库存",
+               "onhand", "stock", "qty", "數量", "数量"] },
+        { k: "unit", label: "單位(選填)", req: false, kw: UNIT_KW }
       ]
     },
     inc: {
       label: "進貨表",
       fields: [
-        { k: "code", label: "材料料號", req: true, kw: ["材料料號", "材料料号", "物料編碼", "物料编码", "料號", "料号", "編號", "编号", "part", "code"] },
-        { k: "name", label: "材料名稱", req: false, kw: ["材料名稱", "材料名称", "物料名稱", "品名", "名稱", "名称", "name"] },
-        { k: "incoming", label: "進貨數量", req: true, kw: ["進貨數量", "进货数量", "進貨", "进货", "到貨數量", "到货数量", "入庫", "入库", "incoming", "receipt", "qty", "數量", "数量"] },
+        { k: "code", label: "材料料號", req: true, kw: CODE_KW },
+        { k: "name", label: "材料名稱(選填)", req: false, kw: NAME_KW },
+        { k: "incoming", label: "進貨數量", req: true,
+          kw: ["進貨數量", "进货数量", "到貨數量", "到货数量", "入庫數量", "入库数量",
+               "進貨", "进货", "到貨", "到货", "入庫", "入库",
+               "incoming", "receipt", "qty", "數量", "数量"] },
         { k: "status", label: "狀態(選填)", req: false, kw: ["狀態", "状态", "status"] },
-        { k: "eta", label: "預計到貨(選填)", req: false, kw: ["預計到貨", "预计到货", "到貨日", "到货日", "日期", "date", "eta"] }
+        { k: "eta", label: "預計到貨(選填)", req: false,
+          kw: ["預計到貨", "预计到货", "到貨日", "到货日", "日期", "date", "eta"] }
       ]
     }
   };
 
-  function norm(s) { return String(s == null ? "" : s).replace(/\s/g, "").toLowerCase(); }
+  function norm(s) {
+    return String(s == null ? "" : s).replace(/[\s\u3000]/g, "").toLowerCase();
+  }
 
   function autoMap(headers, fields) {
     var hn = headers.map(norm), map = {}, used = {};
@@ -506,9 +575,249 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     return map;
   }
 
-  var api = { CFG: CFG, norm: norm, autoMap: autoMap };
+  // 單一列的「像不像表頭」分數
+  function headerScore(row, fields) {
+    var cells = (row || []).map(norm), hits = 0, reqHits = 0, mapped = 0;
+    fields.forEach(function (f) {
+      var found = false;
+      for (var i = 0; i < f.kw.length && !found; i++) {
+        var k = norm(f.kw[i]);
+        for (var j = 0; j < cells.length; j++) {
+          if (!cells[j]) continue;
+          if (cells[j] === k || cells[j].indexOf(k) >= 0) { found = true; break; }
+        }
+      }
+      if (found) { hits++; if (f.req) reqHits++; }
+    });
+    return { hits: hits, reqHits: reqHits };
+  }
+
+  /* 掃描前 maxScan 列，找出最像表頭的一列。
+   * 規則：必要欄位至少命中 2 個，取命中總數最高者；同分取較前面那列。 */
+  function detectHeader(aoa, fields, maxScan) {
+    maxScan = maxScan || 15;
+    var best = null;
+    var limit = Math.min(maxScan, aoa.length);
+    for (var r = 0; r < limit; r++) {
+      var sc = headerScore(aoa[r], fields);
+      if (sc.reqHits < 2) continue;
+      if (!best || sc.hits > best.hits) best = { index: r, hits: sc.hits, reqHits: sc.reqHits };
+    }
+    return best;
+  }
+
+  function toHeaders(row) {
+    return (row || []).map(function (h, i) {
+      return (h == null || h === "") ? ("欄位" + (i + 1)) : String(h).trim();
+    });
+  }
+
+  var api = { CFG: CFG, norm: norm, autoMap: autoMap, headerScore: headerScore, detectHeader: detectHeader, toHeaders: toHeaders };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else global.Mapping = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+/* import.js — 匯入層：選工作表、找表頭、抓訂單台數、多層 BOM 建樹（瀏覽器與 Node 共用）
+ * 依賴 mapping.js 與 compute.js
+ */
+(function (global) {
+  "use strict";
+
+  var Mapping = (typeof module !== "undefined" && module.exports) ? require("./mapping.js") : global.Mapping;
+  var Compute = (typeof module !== "undefined" && module.exports) ? require("./compute.js") : global.Compute;
+
+  var toNum = Compute.toNum;
+
+  function isBlankRow(r) {
+    return !(r || []).some(function (c) { return c !== "" && c != null; });
+  }
+
+  /* 解析單一工作表：找表頭列 → 切出 headers / rows → 自動對應 */
+  function parseSheet(aoa, type) {
+    var fields = Mapping.CFG[type].fields;
+    var det = Mapping.detectHeader(aoa, fields);
+    var hi = det ? det.index : 0;
+    var headers = Mapping.toHeaders(aoa[hi]);
+    var rows = aoa.slice(hi + 1).filter(function (r) { return !isBlankRow(r); });
+    var mapping = Mapping.autoMap(headers, fields);
+    return {
+      headerRow: hi,
+      headers: headers,
+      rows: rows,
+      mapping: mapping,
+      score: det ? det.hits * 10 + det.reqHits * 30 : 0,
+      detected: !!det
+    };
+  }
+
+  /* 負面關鍵字：出現這些欄名代表是「異動明細／樞紐」而不是庫存快照，自動選表時排除 */
+  var NEG = {
+    inv: ["單據日期", "单据日期", "單據編號", "单据编号", "項次", "项次",
+          "期初結存", "期初结存", "本月入庫", "本月入库", "本月出庫", "本月出库", "批號", "批号"]
+  };
+
+  function negHits(headers, type) {
+    var list = NEG[type];
+    if (!list) return 0;
+    var hn = headers.map(Mapping.norm), n = 0;
+    list.forEach(function (k) {
+      var kk = Mapping.norm(k);
+      for (var j = 0; j < hn.length; j++) { if (hn[j] && hn[j].indexOf(kk) >= 0) { n++; return; } }
+    });
+    return n;
+  }
+
+  /* 多工作表評分：
+   *  1) 必要欄位對得上幾個（權重最高）
+   *  2) 資料筆數（主表通常最多，上限 2 萬避免樞紐表輾壓）
+   *  3) 選填欄位命中數
+   *  4) 表頭越靠前越可信
+   * 異動明細／樞紐表（含單據日期、項次、批號等）直接排除自動選擇。 */
+  function pickSheet(sheetList, type) {
+    var fields = Mapping.CFG[type].fields;
+    var best = null;
+    sheetList.forEach(function (sh) {
+      if (!sh.aoa || sh.aoa.length < 2) return;
+      var p = parseSheet(sh.aoa, type);
+      if (negHits(p.headers, type) >= 2) return;   // 異動明細，跳過
+      var mappedReq = fields.filter(function (f) { return f.req && p.mapping[f.k] >= 0; }).length;
+      var mappedAll = fields.filter(function (f) { return p.mapping[f.k] >= 0; }).length;
+      var score = mappedReq * 1e9
+        + Math.min(p.rows.length, 20000) * 1e3
+        + mappedAll * 10
+        + (20 - Math.min(p.headerRow, 20));
+      if (!best || score > best.score) {
+        best = {
+          sheetName: sh.name, headerRow: p.headerRow, headers: p.headers, rows: p.rows,
+          mapping: p.mapping, detected: p.detected, score: score,
+          mappedReq: mappedReq, mappedAll: mappedAll
+        };
+      }
+    });
+    return best;
+  }
+
+  /* 從表頭上方（標題區）抓「数量：10台」「訂單數量 10」之類的台數 */
+  function detectOrderQty(aoa, headerRow) {
+    var pats = [
+      /(?:订单数量|訂單數量|生产数量|生產數量|数量|數量|台数|臺數)\s*[:：]?\s*(\d+(?:\.\d+)?)/,
+      /(\d+(?:\.\d+)?)\s*(?:台|臺|pcs|PCS)/
+    ];
+    var limit = Math.min(headerRow >= 0 ? headerRow + 1 : 3, aoa.length);
+    for (var r = 0; r < limit; r++) {
+      var line = (aoa[r] || []).map(function (c) { return c == null ? "" : String(c); }).join(" ");
+      for (var i = 0; i < pats.length; i++) {
+        var m = line.match(pats[i]);
+        if (m) {
+          var v = toNum(m[1]);
+          if (v > 0) return v;
+        }
+      }
+    }
+    return 0;
+  }
+
+  /* 產品清單（生產數量面板用） */
+  function listProducts(s) {
+    if (!s) return [];
+    var m = s.mapping;
+    var hasProduct = m.productCode != null && m.productCode >= 0;
+    if (!hasProduct) {
+      var code = s.rootCode || s.sheetName || "PRODUCT";
+      return [{ code: code, name: s.rootName || code, qty: s.orderQty || 0 }];
+    }
+    var pc = m.productCode, pn = m.productName, pq = m.productionQty;
+    var seen = {}, out = [];
+    s.rows.forEach(function (r) {
+      var code = String(r[pc] == null ? "" : r[pc]).trim();
+      if (!code) return;
+      var name = (pn != null && pn >= 0) ? String(r[pn] == null ? "" : r[pn]).trim() : "";
+      var q = (pq != null && pq >= 0) ? toNum(r[pq]) : 0;
+      if (!seen[code]) { seen[code] = { code: code, name: name, qty: q }; out.push(seen[code]); }
+      else if (q > seen[code].qty) seen[code].qty = q;
+    });
+    return out;
+  }
+
+  /* BOM 記錄：有「層級」欄就建樹（總成→子件），否則視為單層 */
+  function buildBomRecords(s) {
+    if (!s) return [];
+    var m = s.mapping;
+    function g(row, key) { var i = m[key]; return (i != null && i >= 0) ? row[i] : ""; }
+
+    var hasProduct = m.productCode != null && m.productCode >= 0;
+    var hasLevel = m.level != null && m.level >= 0;
+    var rootCode = s.rootCode || s.sheetName || "PRODUCT";
+    var rootName = s.rootName || rootCode;
+
+    // 判斷層級欄是否真的有分層（只有一種值就當單層處理）
+    if (hasLevel) {
+      var distinct = {};
+      s.rows.forEach(function (r) { var v = String(g(r, "level")).trim(); if (v) distinct[v] = 1; });
+      if (Object.keys(distinct).length < 2) hasLevel = false;
+    }
+
+    if (!hasLevel) {
+      return s.rows.map(function (r) {
+        return {
+          productCode: hasProduct ? g(r, "productCode") : rootCode,
+          productName: hasProduct ? g(r, "productName") : rootName,
+          productionQty: toNum(g(r, "productionQty")),
+          materialCode: g(r, "materialCode"),
+          materialName: g(r, "materialName"),
+          qtyPer: g(r, "qtyPer"),
+          unit: g(r, "unit")
+        };
+      });
+    }
+
+    var out = [], stack = [], prevLevel = 0;
+    s.rows.forEach(function (r) {
+      var code = String(g(r, "materialCode") == null ? "" : g(r, "materialCode")).trim();
+      if (!code) return;
+      var lvRaw = String(g(r, "level") == null ? "" : g(r, "level")).trim();
+      var lv = lvRaw === "" ? (prevLevel || 1) : toNum(lvRaw);
+      if (!lv) lv = 1;
+      prevLevel = lv;
+      while (stack.length && stack[stack.length - 1].level >= lv) stack.pop();
+      var parent = stack.length ? stack[stack.length - 1].code : rootCode;
+      out.push({
+        productCode: parent,
+        productName: parent === rootCode ? rootName : "",
+        productionQty: 0,
+        materialCode: code,
+        materialName: g(r, "materialName"),
+        qtyPer: g(r, "qtyPer"),
+        unit: g(r, "unit")
+      });
+      stack.push({ level: lv, code: code });
+    });
+    return out;
+  }
+
+  function buildRecords(type, s) {
+    if (!s) return [];
+    var m = s.mapping;
+    function g(row, key) { var i = m[key]; return (i != null && i >= 0) ? row[i] : ""; }
+    if (type === "bom") return buildBomRecords(s);
+    if (type === "inv") {
+      return s.rows.map(function (r) {
+        return { code: g(r, "code"), name: g(r, "name"), onHand: g(r, "onHand"), unit: g(r, "unit") };
+      });
+    }
+    return s.rows.map(function (r) {
+      return { code: g(r, "code"), name: g(r, "name"), incoming: g(r, "incoming"), unit: g(r, "unit") };
+    });
+  }
+
+  var api = {
+    parseSheet: parseSheet, pickSheet: pickSheet, detectOrderQty: detectOrderQty,
+    listProducts: listProducts, buildRecords: buildRecords, buildBomRecords: buildBomRecords
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else global.Import = api;
 })(typeof window !== "undefined" ? window : globalThis);
 
 </script>
@@ -519,6 +828,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   var CFG = Mapping.CFG;
   var norm = Mapping.norm;
   var autoMap = Mapping.autoMap;
+  var Imp = Import;
+
+  var MAX_ROWS = 30000;   // 單一工作表最多讀取列數（避免百萬列樞紐表拖垮瀏覽器）
 
   var state = { bom: null, inv: null, inc: null };
   var lastResults = null;
@@ -540,14 +852,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     reader.onload = function (e) {
       try {
         var wb = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false });
-        if (!aoa.length) throw new Error("檔案沒有資料");
-        var headers = aoa[0].map(function (h, i) { return (h == null || h === "") ? ("欄位" + (i + 1)) : String(h); });
-        var rows = aoa.slice(1).filter(function (r) {
-          return r.some(function (c) { return c !== "" && c != null; });
-        });
-        state[type] = { file: file.name, headers: headers, rows: rows, mapping: autoMap(headers, CFG[type].fields) };
+        var sheetList = wb.SheetNames.map(function (n) {
+          return {
+            name: n,
+            aoa: XLSX.utils.sheet_to_json(wb.Sheets[n], {
+              header: 1, defval: "", blankrows: false, sheetRows: MAX_ROWS
+            })
+          };
+        }).filter(function (s) { return s.aoa.length > 1; });
+
+        if (!sheetList.length) throw new Error("檔案沒有可用的資料");
+
+        var best = Imp.pickSheet(sheetList, type);
+        if (!best) throw new Error("找不到可辨識的表頭，請確認檔案內容或改用範本格式");
+
+        state[type] = {
+          file: file.name,
+          sheetList: sheetList,
+          sheetName: best.sheetName,
+          headerRow: best.headerRow,
+          headers: best.headers,
+          rows: best.rows,
+          mapping: best.mapping,
+          orderQty: 0,
+          rootCode: best.sheetName,
+          rootName: best.sheetName
+        };
+        applyOrderQty(type);
         renderCard(type);
         if (type === "bom") renderQtyPanel();
         updateRunState();
@@ -558,22 +889,86 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     reader.readAsArrayBuffer(file);
   }
 
+  function applyOrderQty(type) {
+    if (type !== "bom" || !state.bom) return;
+    var cur = state.bom.sheetList.filter(function (s) { return s.name === state.bom.sheetName; })[0];
+    if (cur) state.bom.orderQty = Imp.detectOrderQty(cur.aoa, state.bom.headerRow);
+  }
+
+  function switchSheet(type, name) {
+    var s = state[type];
+    if (!s) return;
+    var cur = s.sheetList.filter(function (x) { return x.name === name; })[0];
+    if (!cur) return;
+    var p = Imp.parseSheet(cur.aoa, type);
+    s.sheetName = name;
+    s.headerRow = p.headerRow;
+    s.headers = p.headers;
+    s.rows = p.rows;
+    s.mapping = p.mapping;
+    s.rootCode = name;
+    s.rootName = name;
+    applyOrderQty(type);
+    renderCard(type);
+    if (type === "bom") renderQtyPanel();
+    updateRunState();
+  }
+
   function renderCard(type) {
     var card = document.querySelector('.upload-card[data-type="' + type + '"]');
     var s = state[type];
     var fs = card.querySelector(".file-status");
+    var sum = card.querySelector(".read-summary");
     var mapEl = card.querySelector(".mapping");
     var clearBtn = card.querySelector(".clear-btn");
     if (!s) {
-      fs.hidden = true; mapEl.hidden = true; clearBtn.hidden = true;
+      fs.hidden = true; mapEl.hidden = true; clearBtn.hidden = true; sum.hidden = true;
       card.querySelector(".dropzone").style.display = "";
       return;
     }
     card.querySelector(".dropzone").style.display = "none";
     fs.hidden = false;
-    fs.innerHTML = '<span class="fn">✓ ' + esc(s.file) + '</span> <span class="meta">（' + s.rows.length + " 筆資料，" + s.headers.length + " 欄）</span>";
+    fs.innerHTML = '<span class="fn">✓ ' + esc(s.file) + '</span>' +
+      '<span class="meta">（' + s.rows.length + " 筆資料，" + s.headers.length + " 欄）</span>";
     clearBtn.hidden = false;
 
+    // ---- 讀取摘要 ----
+    sum.hidden = false;
+    var sheetOpts = s.sheetList.map(function (x) {
+      return '<option value="' + esc(x.name) + '"' + (x.name === s.sheetName ? " selected" : "") + ">" +
+        esc(x.name) + "</option>";
+    }).join("");
+    var notes = [];
+    if (s.sheetList.length > 1) notes.push("已自動選最相符的工作表");
+    notes.push("表頭在第 " + (s.headerRow + 1) + " 列");
+    if (type === "bom") {
+      var m = s.mapping;
+      if (m.productCode < 0) notes.push("未指定產品料號 → 視為單一產品「" + s.sheetName + "」");
+      if (m.level >= 0) notes.push("偵測到層級欄，已依階層展開");
+      if (s.orderQty > 0) notes.push("自動帶入訂單台數 " + s.orderQty);
+    }
+    var pvHead = s.headers.slice(0, 6).map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("");
+    var pvBody = s.rows.slice(0, 3).map(function (r) {
+      return "<tr>" + s.headers.slice(0, 6).map(function (_, i) {
+        return "<td>" + esc(r[i] == null ? "" : String(r[i]).slice(0, 22)) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+
+    sum.innerHTML =
+      '<div class="rs-row"><label>工作表</label>' +
+        (s.sheetList.length > 1
+          ? '<select class="sheet-pick">' + sheetOpts + "</select>"
+          : '<span class="rs-static">' + esc(s.sheetName) + "</span>") +
+      "</div>" +
+      '<div class="rs-notes">' + notes.map(function (t) { return "<span>" + esc(t) + "</span>"; }).join("") + "</div>" +
+      '<details class="rs-preview"><summary>預覽前 3 筆</summary>' +
+        '<div class="pv-wrap"><table class="pv"><thead><tr>' + pvHead + "</tr></thead><tbody>" + pvBody + "</tbody></table></div>" +
+      "</details>";
+
+    var sp = sum.querySelector(".sheet-pick");
+    if (sp) sp.addEventListener("change", function () { switchSheet(type, sp.value); });
+
+    // ---- 欄位對應 ----
     mapEl.hidden = false;
     mapEl.innerHTML = CFG[type].fields.map(function (f) {
       var opts = '<option value="-1">— 不指定 —</option>' + s.headers.map(function (h, i) {
@@ -593,52 +988,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
   }
 
-  // ---- 映射為記錄 ----
-  function buildRecords(type) {
-    var s = state[type];
-    if (!s) return [];
-    var m = s.mapping;
-    function g(row, key) { var i = m[key]; return (i != null && i >= 0) ? row[i] : ""; }
-    if (type === "bom") {
-      return s.rows.map(function (r) {
-        return {
-          productCode: g(r, "productCode"), productName: g(r, "productName"), productionQty: g(r, "productionQty"),
-          materialCode: g(r, "materialCode"), materialName: g(r, "materialName"), qtyPer: g(r, "qtyPer"), unit: g(r, "unit")
-        };
-      });
-    }
-    if (type === "inv") {
-      return s.rows.map(function (r) {
-        return { code: g(r, "code"), name: g(r, "name"), onHand: g(r, "onHand"), unit: g(r, "unit") };
-      });
-    }
-    return s.rows.map(function (r) {
-      return { code: g(r, "code"), name: g(r, "name"), incoming: g(r, "incoming"), unit: g(r, "unit") };
-    });
-  }
-
   // ---- 生產數量面板 ----
   function renderQtyPanel() {
     var sec = document.getElementById("qtySection");
     var list = document.getElementById("qtyList");
     var s = state.bom;
-    if (!s || s.mapping.productCode == null || s.mapping.productCode < 0) { sec.hidden = true; return; }
-    var pc = s.mapping.productCode, pn = s.mapping.productName, pq = s.mapping.productionQty;
-    var seen = {}, prods = [];
-    s.rows.forEach(function (r) {
-      var code = String(r[pc] == null ? "" : r[pc]).trim();
-      if (!code) return;
-      var name = (pn != null && pn >= 0) ? String(r[pn] == null ? "" : r[pn]).trim() : "";
-      var q = (pq != null && pq >= 0) ? Compute.toNum(r[pq]) : 0;
-      if (!seen[code]) { seen[code] = { code: code, name: name, qty: q }; prods.push(seen[code]); }
-      else if (q > seen[code].qty) seen[code].qty = q;
-    });
+    if (!s) { sec.hidden = true; return; }
+    var prods = Imp.listProducts(s);
     if (!prods.length) { sec.hidden = true; return; }
     sec.hidden = false;
     list.innerHTML = prods.map(function (p) {
       return '<div class="qty-row"><span class="qty-code">' + esc(p.code) + '</span>' +
         '<span class="qty-name">' + esc(p.name) + '</span>' +
-        '<input type="number" min="0" step="1" data-code="' + esc(p.code) + '" value="' + p.qty + '"></div>';
+        '<input type="number" min="0" step="1" data-code="' + esc(p.code) + '" value="' + (p.qty || "") + '"></div>';
     }).join("");
   }
 
@@ -669,9 +1031,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   // ---- 執行 ----
   function run() {
-    var bom = buildRecords("bom");
-    var inv = buildRecords("inv");
-    var inc = state.inc ? buildRecords("inc") : [];
+    var bom = Imp.buildRecords("bom", state.bom);
+    var inv = Imp.buildRecords("inv", state.inv);
+    var inc = state.inc ? Imp.buildRecords("inc", state.inc) : [];
     var overrides = {};
     document.querySelectorAll("#qtyList input").forEach(function (inp) {
       overrides[inp.dataset.code] = inp.value;
@@ -691,6 +1053,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   function statusClass(s) {
     if (s === "缺料") return "st-bad";
+    if (s === "待組裝") return "st-asm";
     if (s === "足夠") return "st-ok";
     if (s === "無需求(呆滯)") return "st-idle";
     return "st-na";
@@ -702,7 +1065,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       '<div class="kpi"><div class="k-label">料號總數</div><div class="k-val">' + k.total + "</div></div>" +
       '<div class="kpi warn"><div class="k-label">缺料料號</div><div class="k-val">' + k.shortageItems + "</div></div>" +
       '<div class="kpi warn"><div class="k-label">缺料總量</div><div class="k-val">' + fmt(k.shortageQty) + "</div></div>" +
-      '<div class="kpi idle"><div class="k-label">呆滯料號(無需求有庫存)</div><div class="k-val">' + k.idleItems + "</div></div>";
+      '<div class="kpi asm"><div class="k-label">待組裝料號</div><div class="k-val">' + k.assemblyItems + "</div></div>";
     applyFilter();
   }
 
@@ -733,7 +1096,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         '<td class="num-col">' + fmt(r.onHand) + "</td>" +
         '<td class="num-col">' + fmt(r.incoming) + "</td>" +
         '<td class="num-col">' + fmt(r.available) + "</td>" +
-        '<td class="num-col' + (r.shortage > 0 ? " shortage-cell" : "") + '">' + fmt(r.shortage) + "</td>" +
+        '<td class="num-col' + (r.status === "缺料" ? " shortage-cell" : "") + '">' + fmt(r.shortage) + "</td>" +
         '<td><span class="st ' + statusClass(r.status) + '">' + esc(r.status) + "</span></td>" +
         "</tr>";
     }).join("");
